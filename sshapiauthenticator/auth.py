@@ -28,7 +28,7 @@ class SSHAPIAuthenticator(Authenticator):
         Return None otherwise.
         """
         username = data['username']
-        pwd = data['password'],
+        pwd = data['password']
         try:
             headers={'Authorization':'Basic %s:%s' % (username,pwd)}
             r = requests.post( self.server, headers=headers)
