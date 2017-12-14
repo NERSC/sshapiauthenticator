@@ -30,10 +30,10 @@ class SSHAPIAuthenticator(Authenticator):
         username = data['username']
         pwd = data['password']
         try:
-            headers={'Authorization':'Basic %s:%s' % (username,pwd)}
+            headers={'Authorization':'Basic %s:%s' % (username, pwd)}
             r = requests.post( self.server, headers=headers)
             if r.status_code==200:
-               file = '%s/%s.key' %(cert_path, user)
+               file = '%s/%s.key' %(cert_path, username)
                with open(file, 'w') as f:
                   f.write(r.text)
                os.chmod(file, 0o600)
