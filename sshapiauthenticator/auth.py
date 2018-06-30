@@ -3,6 +3,7 @@ import os
 from traitlets import Unicode, Integer
 from tornado import gen
 import requests
+import json
 
 from jupyterhub.auth import Authenticator
 
@@ -46,12 +47,17 @@ class SSHAPIAuthenticator(Authenticator):
         try:
             headers = {'Authorization': 'Basic %s:%s' % (username, pwd)}
             if self.skey!='':
-                headers['skey'] = self.skey
-            r = requests.post(self.server, headers=headers)
+                data = json.dumps({'skey':self.skey})
+                r = requests.post(self.server, headers=headers, data=data)
+            else:
+                r = requests.post(self.server, headers=headers)
             if r.status_code == 200:
                 file = '%s/%s.key' % (self.cert_path, username)
                 self._write_key(file, r.text)
-
+            else:
+                self.log.warning("SSH Auth API Authentication failed (%s@%s):",
+                                 username, handler.request.remote_ip)
+                return None
         except:
             if handler is not None:
                 self.log.warning("SSH Auth API Authentication failed (%s@%s):",
