@@ -12,13 +12,27 @@ class SSHAPIAuthenticator(Authenticator):
     encoding = Unicode('utf8',
                        help="""The encoding to use for SSH API"""
                        ).tag(config=True)
+
     server = Unicode('https://localhost',
                      help="""The SSH Auth API server URL to use for authentication."""
                      ).tag(config=True)
 
+    skey = Unicode('',
+                   help="""Shared key to use for a scope."""
+                   ).tag(config=True)
+
     cert_path = Unicode('/tmp/',
-                               help="""The path for the cert/key file"""
-                               ).tag(config=True)
+                        help="""The path for the cert/key file"""
+                        ).tag(config=True)
+
+    def _write_key(self, file, data):
+        with open(file, 'w') as f:
+            f.write(data)
+        os.chmod(file, 0o600)
+        for line in data.split('\n'):
+          if line.startswith('ssh-rsa-cert'):
+            with open(file+'-cert,pub', 'w') as f:
+                f.write(line)
 
     @gen.coroutine
     def authenticate(self, handler, data):
@@ -30,13 +44,13 @@ class SSHAPIAuthenticator(Authenticator):
         username = data['username']
         pwd = data['password']
         try:
-            headers={'Authorization':'Basic %s:%s' % (username, pwd)}
-            r = requests.post( self.server, headers=headers)
-            if r.status_code==200:
-               file = '%s/%s.key' %(self.cert_path, username)
-               with open(file, 'w') as f:
-                  f.write(r.text)
-               os.chmod(file, 0o600)
+            headers = {'Authorization': 'Basic %s:%s' % (username, pwd)}
+            if self.skey!='':
+                headers['skey'] = self.skey
+            r = requests.post(self.server, headers=headers)
+            if r.status_code == 200:
+                file = '%s/%s.key' % (self.cert_path, username)
+                self._write_key(file, r.text)
 
         except:
             if handler is not None:
