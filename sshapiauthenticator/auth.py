@@ -4,6 +4,8 @@ from traitlets import Unicode, Integer
 from tornado import gen
 import requests
 import json
+from subprocess import check_output
+
 
 from jupyterhub.auth import Authenticator
 
@@ -30,6 +32,9 @@ class SSHAPIAuthenticator(Authenticator):
         with open(file, 'w') as f:
             f.write(data)
         os.chmod(file, 0o600)
+        out = check_output(["ssh-keygen","-f",file,'-y'])
+        with open(file.rstrip('.key')+'.pub','w') as f:
+            f.write(str(out, 'utf-8'))
         for line in data.split('\n'):
           if line.startswith('ssh-rsa-cert'):
             with open(file+'-cert,pub', 'w') as f:
