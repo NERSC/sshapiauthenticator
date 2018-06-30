@@ -33,11 +33,11 @@ class SSHAPIAuthenticator(Authenticator):
             f.write(data)
         os.chmod(file, 0o600)
         out = check_output(["ssh-keygen","-f",file,'-y'])
-        with open(file.rstrip('.key')+'.pub','w') as f:
+        with open(file+'.pub','w') as f:
             f.write(str(out, 'utf-8'))
         for line in data.split('\n'):
           if line.startswith('ssh-rsa-cert'):
-            with open(file+'-cert,pub', 'w') as f:
+            with open(file+'-cert.pub', 'w') as f:
                 f.write(line)
 
     @gen.coroutine
