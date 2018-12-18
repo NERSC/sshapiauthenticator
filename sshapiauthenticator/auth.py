@@ -50,12 +50,11 @@ class SSHAPIAuthenticator(Authenticator):
         username = data['username']
         pwd = data['password']
         try:
-            headers = {'Authorization': 'Basic %s:%s' % (username, pwd)}
             if self.skey!='':
                 data = json.dumps({'skey':self.skey})
-                r = requests.post(self.server, headers=headers, data=data)
+                r = requests.post(self.server, data=data, auth=(username, pwd))
             else:
-                r = requests.post(self.server, headers=headers)
+                r = requests.post(self.server, auth=(username, pwd))
             if r.status_code == 200:
                 file = '%s/%s.key' % (self.cert_path, username)
                 self._write_key(file, r.text)
