@@ -47,7 +47,7 @@ class SSHAPIAuthenticator(Authenticator):
 
         Return None otherwise.
         """
-        username = data['username']
+        username = data['username'].lower()
         pwd = data['password']
         try:
             if self.skey!='':
