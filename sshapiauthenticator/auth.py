@@ -68,7 +68,7 @@ class SSHAPIAuthenticator(Authenticator):
                                            auth_password=pwd)
             if resp.code == 200:
                 file = '%s/%s.key' % (self.cert_path, username)
-                self._write_key(file, r.text)
+                self._write_key(file, resp.body.decode('utf-8'))
             else:
                 self.log.warning("SSH Auth API Authentication failed (%s@%s):",
                                  username, handler.request.remote_ip)
