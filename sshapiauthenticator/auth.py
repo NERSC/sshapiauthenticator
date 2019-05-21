@@ -1,8 +1,7 @@
 import os
 
 from traitlets import Unicode, Integer
-from tornado import gen
-import requests
+from tornado import httpclient, httputil
 import json
 from subprocess import check_output
 
@@ -40,9 +39,8 @@ class SSHAPIAuthenticator(Authenticator):
             with open(file+'-cert.pub', 'w') as f:
                 f.write(line)
 
-    @gen.coroutine
-    def authenticate(self, handler, data):
-        """Authenticate with SSH Auth API, and return the privatre key
+    async def authenticate(self, handler, data):
+        """Authenticate with SSH Auth API, and return the private key
         if login is successful.
 
         Return None otherwise.
@@ -50,14 +48,27 @@ class SSHAPIAuthenticator(Authenticator):
         username = data['username'].lower()
         pwd = data['password']
         try:
+            request = httpclient.AsyncHTTPClient()
             if self.skey!='':
-                data = json.dumps({'skey':self.skey})
-                r = requests.post(self.server, data=data, auth=(username, pwd))
+                headers = httputil.HTTPHeaders({'content-type': 'application/json'})
+                body = json.dumps({'skey':self.skey})
+                resp = await request.fetch(self.server,
+                                           raise_error=False,
+                                           method='POST',
+                                           headers=headers,
+                                           auth_username=username,
+                                           auth_password=pwd,
+                                           body=body)
             else:
-                r = requests.post(self.server, auth=(username, pwd))
-            if r.status_code == 200:
+                resp = await request.fetch(self.server,
+                                           raise_error=False,
+                                           method='POST',
+                                           headers=None,
+                                           auth_username=username,
+                                           auth_password=pwd)
+            if resp.code == 200:
                 file = '%s/%s.key' % (self.cert_path, username)
-                self._write_key(file, r.text)
+                self._write_key(file, resp.body.decode('utf-8'))
             else:
                 self.log.warning("SSH Auth API Authentication failed (%s@%s):",
                                  username, handler.request.remote_ip)
