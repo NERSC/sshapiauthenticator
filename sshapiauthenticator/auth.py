@@ -32,11 +32,11 @@ class SSHAPIAuthenticator(Authenticator):
         os.chmod(file, 0o600)
         out = check_output(['ssh-keygen', '-f', str(file), '-y'])
         with open(f'{file}.pub', 'w') as f:
-            f.write(str(out, 'utf-8'))
+            f.write(str(out, self.encoding))
         for line in data.split('\n'):
             if line.startswith('ssh-rsa-cert'):
                 with open(f'{file}-cert.pub', 'w') as f:
-                    f.write(line)
+                    f.write(f'{line}\n')
 
     async def authenticate(self, handler, data):
         """Authenticate with SSH Auth API, and return the private key
@@ -66,18 +66,24 @@ class SSHAPIAuthenticator(Authenticator):
                                            auth_username=username,
                                            auth_password=pwd)
             if resp.code == 200:
-                file = Path(self.cert_path) / f'{username}.key'
-                self._write_key(file, resp.body.decode('utf-8'))
+                file = Path(self.cert_path)/f'{username}.key'
+                self._write_key(file, resp.body.decode(self.encoding))
             else:
-                self.log.warning("SSH Auth API Authentication failed (%s@%s):",
-                                 username, handler.request.remote_ip)
+                message = (
+                    f'SSH Auth API Authentication failed for'
+                    f' {username}@{handler.request.remote_ip}'
+                    f' with error {resp.code}: "{resp.reason}"'
+                )
+                self.log.warning(message)
                 return None
         except:
+            message = f'SSH Auth API Authentication failed for user "{username}"'
             if handler is not None:
-                self.log.warning("SSH Auth API Authentication failed (%s@%s):",
-                                 username, handler.request.remote_ip)
-            else:
-                self.log.warning("SSH Auth API Authentication failed: ")
+                message = (
+                    f'SSH Auth API Authentication failed for'
+                    f' {username}@{handler.request.remote_ip}'
+                )
+            self.log.warning(message)
             return None
         else:
             return username
